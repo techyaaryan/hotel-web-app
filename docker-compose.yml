@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  server:
+    build:
+      context: ./project/hotel-mern/server
+      dockerfile: Dockerfile
+    container_name: hotel-mern-server
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - MONGO_URI=${MONGO_URI:-mongodb+srv://aaryanshende2_db_user:pEu0mG257AIF3i8K@cluster0.gmk2bwu.mongodb.net/hotelledger?retryWrites=true&w=majority}
+      - JWT_SECRET=${JWT_SECRET:-ledger_super_secret_jwt_2024}
+    restart: unless-stopped
+
+  client:
+    build:
+      context: ./project/hotel-mern/client
+      dockerfile: Dockerfile
+    container_name: hotel-mern-client
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+    restart: unless-stopped

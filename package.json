@@ -1,0 +1,9 @@
+{
+  "name": "project-root",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "npm --prefix project/hotel-mern run dev",
+    "server": "npm --prefix project/hotel-mern/server run dev",
+    "client": "npm --prefix project/hotel-mern/client run dev"
+  }
+}
