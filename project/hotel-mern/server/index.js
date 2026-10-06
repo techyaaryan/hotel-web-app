@@ -9,6 +9,44 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// MongoDB connection and server start
+const PORT = process.env.PORT || 5000;
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/hotelledger';
+
+let cachedPromise = null;
+async function connectDB() {
+  if (mongoose.connection.readyState >= 1) return;
+  if (!cachedPromise) {
+    cachedPromise = mongoose.connect(MONGO_URI).then(async (m) => {
+      await seedDefaults();
+      return m;
+    }).catch((err) => {
+      cachedPromise = null;
+      throw err;
+    });
+  }
+  await cachedPromise;
+}
+
+// Health check endpoints
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', message: 'Hotel Ledger Backend is running' });
+});
+app.get('/api', (req, res) => {
+  res.json({ status: 'ok', message: 'Hotel Ledger API is running' });
+});
+
+// Middleware to ensure DB connection before executing any API route
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error('❌ MongoDB connection error:', err.message);
+    res.status(500).json({ error: 'Database connection failed: ' + err.message });
+  }
+});
+
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/rooms', require('./routes/rooms'));
@@ -16,18 +54,6 @@ app.use('/api/staff', require('./routes/staff'));
 app.use('/api/bookings', require('./routes/bookings'));
 app.use('/api/queue', require('./routes/queue'));
 app.use('/api/invoices', require('./routes/invoices'));
-
-// MongoDB connection and server start
-const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/hotelledger';
-
-let isConnected = false;
-async function connectDB() {
-  if (isConnected || mongoose.connection.readyState >= 1) return;
-  await mongoose.connect(MONGO_URI);
-  isConnected = true;
-  await seedDefaults();
-}
 
 if (!process.env.VERCEL) {
   connectDB()
@@ -39,17 +65,6 @@ if (!process.env.VERCEL) {
       console.error('❌ MongoDB connection error:', err.message);
       process.exit(1);
     });
-} else {
-  // Serverless Vercel middleware to ensure DB connection
-  app.use(async (req, res, next) => {
-    try {
-      await connectDB();
-      next();
-    } catch (err) {
-      console.error('❌ MongoDB connection error:', err.message);
-      res.status(500).json({ error: 'Database connection failed' });
-    }
-  });
 }
 
 async function seedDefaults() {
