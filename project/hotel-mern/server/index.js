@@ -17,7 +17,9 @@ let cachedPromise = null;
 async function connectDB() {
   if (mongoose.connection.readyState >= 1) return;
   if (!cachedPromise) {
-    cachedPromise = mongoose.connect(MONGO_URI).then(async (m) => {
+    cachedPromise = mongoose.connect(MONGO_URI, {
+      serverSelectionTimeoutMS: 8000,
+    }).then(async (m) => {
       await seedDefaults();
       return m;
     }).catch((err) => {
